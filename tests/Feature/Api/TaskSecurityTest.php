@@ -247,4 +247,31 @@ class TaskSecurityTest extends TestCase
             ->assertOk()
             ->assertJsonStructure(['message']);
     }
+
+    public function test_invalid_task_status_has_consistent_error_format(): void
+    {
+        $user = User::factory()->create();
+
+        $course = $user->courses()->create([
+            'name' => 'Pemrograman Web',
+            'code' => 'WEB101',
+            'credits' => 3,
+        ]);
+
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        $this->withToken($token)
+            ->postJson('/api/tasks', [
+                'course_id' => $course->id,
+                'title' => 'Tugas API',
+                'deadline' => now()->addDays(3)->toDateString(),
+                'priority' => 'high',
+                'status' => 'selesai',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonStructure([
+                'message',
+                'errors' => ['status'],
+            ]);
+    }
 }

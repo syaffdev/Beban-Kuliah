@@ -68,4 +68,23 @@ class AuthFlowTest extends TestCase
         ])->assertUnprocessable()
             ->assertJsonValidationErrors('email');
     }
+
+    public function test_login_error_has_consistent_response_format(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'login-test@example.com',
+            'password' => Hash::make('password123'),
+        ]);
+
+        $this->postJson('/api/auth/login', [
+            'email' => $user->email,
+            'password' => 'wrong-password',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Email atau password salah.')
+            ->assertJsonPath(
+                'errors.email.0',
+                'Email atau password salah.'
+            );
+    }
 }

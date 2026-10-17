@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -38,9 +37,12 @@ class AuthController extends Controller
         ]);
         $user = User::where('email', $validated['email'])->first();
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['Email atau password salah.'],
-            ]);
+            return response()->json([
+                'message' => 'Email atau password salah.',
+                'errors' => [
+                    'email' => ['Email atau password salah.'],
+                ],
+            ], 422);
         }
         $token = $user->createToken('auth_sanctum')->plainTextToken;
 
@@ -54,8 +56,9 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
+
         return response()->json([
-            'message' => 'Logout Berhasil'
+            'message' => 'Logout Berhasil',
         ], 200);
     }
 }

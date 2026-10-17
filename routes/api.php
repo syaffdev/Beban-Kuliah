@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CourseController;
+use App\Http\Controllers\Api\TaskAnalysisController;
 use App\Http\Controllers\Api\TaskController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,4 +34,9 @@ Route::middleware('auth:sanctum')->prefix('tasks')->group(function () {
     Route::put('/{task}', [TaskController::class, 'update']);
     Route::patch('/{task}', [TaskController::class, 'update']);
     Route::delete('/{task}', [TaskController::class, 'destroy']);
+});
+
+// Task Analysis
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/analysis/workload', [TaskAnalysisController::class,'workload',]);
 });

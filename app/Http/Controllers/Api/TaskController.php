@@ -11,11 +11,7 @@ class TaskController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $tasks = $request->user()
-            ->tasks()
-            ->with('course:id,name,code')
-            ->latest()
-            ->get();
+        $tasks = $request->user()->tasks()->with('course:id,name,code')->latest()->get();
 
         return response()->json([
             'message' => 'Daftar tugas berhasil diambil.',
@@ -29,8 +25,7 @@ class TaskController extends Controller
             'course_id' => [
                 'required',
                 'integer',
-                Rule::exists('courses', 'id')
-                    ->where('user_id', $request->user()->id),
+                Rule::exists('courses', 'id')->where('user_id', $request->user()->id),
             ],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
@@ -45,9 +40,7 @@ class TaskController extends Controller
             ],
         ]);
 
-        $task = $request->user()
-            ->tasks()
-            ->create($validated);
+        $task = $request->user()->tasks()->create($validated);
 
         return response()->json([
             'message' => 'Tugas berhasil dibuat.',
@@ -57,10 +50,7 @@ class TaskController extends Controller
 
     public function show(Request $request, string $id): JsonResponse
     {
-        $task = $request->user()
-            ->tasks()
-            ->with('course:id,name,code')
-            ->findOrFail($id);
+        $task = $request->user()->tasks()->with('course:id,name,code')->findOrFail($id);
 
         return response()->json([
             'message' => 'Detail tugas berhasil diambil.',
@@ -68,21 +58,15 @@ class TaskController extends Controller
         ]);
     }
 
-    public function update(
-        Request $request,
-        string $id
-    ): JsonResponse {
-        $task = $request->user()
-            ->tasks()
-            ->findOrFail($id);
-
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $task = $request->user()->tasks()->findOrFail($id);
         $validated = $request->validate([
             'course_id' => [
                 'sometimes',
                 'required',
                 'integer',
-                Rule::exists('courses', 'id')
-                    ->where('user_id', $request->user()->id),
+                Rule::exists('courses', 'id')->where('user_id', $request->user()->id),
             ],
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
@@ -96,7 +80,6 @@ class TaskController extends Controller
                 Rule::in(['pending', 'in_progress', 'completed']),
             ],
         ]);
-
         $task->update($validated);
 
         return response()->json([
@@ -105,14 +88,9 @@ class TaskController extends Controller
         ]);
     }
 
-    public function destroy(
-        Request $request,
-        string $id
-    ): JsonResponse {
-        $task = $request->user()
-            ->tasks()
-            ->findOrFail($id);
-
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        $task = $request->user()->tasks()->findOrFail($id);
         $task->delete();
 
         return response()->json([
@@ -120,4 +98,3 @@ class TaskController extends Controller
         ]);
     }
 }
-
