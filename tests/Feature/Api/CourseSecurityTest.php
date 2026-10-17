@@ -167,4 +167,114 @@ class CourseSecurityTest extends TestCase
             'id' => $task->id,
         ]);
     }
+
+    public function test_course_crud_returns_expected_response_structure(): void
+    {
+        $user = User::factory()->create();
+
+        Sanctum::actingAs($user);
+
+        // CREATE
+        $createResponse = $this->postJson('/api/courses', [
+            'name' => 'Pemrograman Web',
+            'code' => 'WEB101',
+            'credits' => 3,
+        ]);
+
+        $createResponse->assertCreated()
+            ->assertJsonStructure([
+                'message',
+                'data' => [
+                    'id',
+                    'user_id',
+                    'name',
+                    'code',
+                    'credits',
+                ],
+            ]);
+
+        $courseId = $createResponse->json('data.id');
+
+        // LIST
+        $this->getJson('/api/courses')
+            ->assertOk()
+            ->assertJsonStructure([
+                'message',
+                'data' => [
+                    '*' => [
+                        'id',
+                        'name',
+                        'code',
+                        'credits',
+                    ],
+                ],
+            ]);
+
+        // DETAIL
+        $this->getJson("/api/courses/{$courseId}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $courseId)
+            ->assertJsonPath('data.code', 'WEB101');
+
+        // UPDATE
+        $this->patchJson("/api/courses/{$courseId}", [
+            'name' => 'Pemrograman Web Lanjut',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.name', 'Pemrograman Web Lanjut');
+
+        // DELETE
+        $this->deleteJson("/api/courses/{$courseId}")
+            ->assertOk()
+            ->assertJsonStructure([
+                'message',
+            ]);
+    }
+
+    public function test_user_cannot_create_courses_with_duplicate_code(): void
+    {
+        $user = User::factory()->create();
+
+        $user->courses()->create([
+            'name' => 'Pemrograman Web',
+            'code' => 'WEB101',
+            'credits' => 3,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/courses', [
+            'name' => 'Pemrograman Mobile',
+            'code' => 'WEB101',
+            'credits' => 3,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['code']);
+
+        $this->assertDatabaseCount('courses', 1);
+    }
+
+    public function test_different_users_can_use_the_same_course_code(): void
+    {
+        $firstUser = User::factory()->create();
+        $secondUser = User::factory()->create();
+
+        $firstUser->courses()->create([
+            'name' => 'Pemrograman Web',
+            'code' => 'WEB101',
+            'credits' => 3,
+        ]);
+
+        Sanctum::actingAs($secondUser);
+
+        $this->postJson('/api/courses', [
+            'name' => 'Pemrograman Web',
+            'code' => 'WEB101',
+            'credits' => 3,
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.user_id', $secondUser->id);
+
+        $this->assertDatabaseCount('courses', 2);
+    }
 }
