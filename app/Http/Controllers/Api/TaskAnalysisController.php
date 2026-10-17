@@ -39,4 +39,42 @@ class TaskAnalysisController extends Controller
             ],
         ]);
     }
+
+    public function deadlineRisk(Request $request)
+    {
+        $user = $request->user();
+
+        $tasks = Task::where('user_id', $user->id)
+            ->where('status', '!=', 'completed')
+            ->orderBy('deadline')
+            ->get();
+
+        $data = $tasks->map(function ($task) {
+            $daysLeft = (int) now()
+                ->startOfDay()
+                ->diffInDays($task->deadline->copy()->startOfDay(), false);
+
+            if ($daysLeft < 0) {
+                $risk = 'overdue';
+            } elseif ($daysLeft <= 2) {
+                $risk = 'high';
+            } else {
+                $risk = 'low';
+            }
+
+            return [
+                'id' => $task->id,
+                'title' => $task->title,
+                'deadline' => $task->deadline,
+                'status' => $task->status,
+                'days_left' => $daysLeft,
+                'risk' => $risk,
+            ];
+        });
+
+        return response()->json([
+            'message' => 'Analisis risiko deadline berhasil.',
+            'data' => $data,
+        ]);
+    }
 }

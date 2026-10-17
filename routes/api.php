@@ -39,4 +39,5 @@ Route::middleware('auth:sanctum')->prefix('tasks')->group(function () {
 // Task Analysis
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/analysis/workload', [TaskAnalysisController::class,'workload',]);
+    Route::get('/analysis/deadline-risk', [TaskAnalysisController::class, 'deadlineRisk']);
 });
