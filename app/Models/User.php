@@ -41,4 +41,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Task::class);
     }
+
+    public function weeklyAvailabilities(): HasMany
+    {
+        return $this->hasMany(WeeklyAvailability::class);
+    }
+
+    public function availabilityExceptions(): HasMany
+    {
+        return $this->hasMany(AvailabilityException::class);
+    }
 }

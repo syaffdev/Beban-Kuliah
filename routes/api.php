@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AvailabilityController;
+use App\Http\Controllers\Api\AvailabilityExceptionsController;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\TaskAnalysisController;
 use App\Http\Controllers\Api\TaskController;
@@ -38,6 +40,18 @@ Route::middleware('auth:sanctum')->prefix('tasks')->group(function () {
 
 // Task Analysis
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/analysis/workload', [TaskAnalysisController::class,'workload',]);
+    Route::get('/analysis/workload', [TaskAnalysisController::class, 'workload']);
     Route::get('/analysis/deadline-risk', [TaskAnalysisController::class, 'deadlineRisk']);
+});
+
+Route::middleware('auth:sanctum')->prefix('availability')->group(function () {
+    Route::get('/weekly', [AvailabilityController::class, 'index']);
+    Route::post('/weekly', [AvailabilityController::class, 'store']);
+    Route::patch('/weekly/{id}', [AvailabilityController::class, 'update']);
+    Route::delete('/weekly/{id}', [AvailabilityController::class, 'destroy']);
+    Route::get('/exceptions', [AvailabilityExceptionsController::class, 'index']);
+    Route::post('/exceptions', [AvailabilityExceptionsController::class, 'store']);
+    Route::patch('/exceptions/{id}', [AvailabilityExceptionsController::class, 'update']);
+    Route::delete('/exceptions/{id}', [AvailabilityExceptionsController::class, 'destroy']);
+
 });
