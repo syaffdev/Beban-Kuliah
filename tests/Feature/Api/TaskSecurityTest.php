@@ -274,4 +274,107 @@ class TaskSecurityTest extends TestCase
                 'errors' => ['status'],
             ]);
     }
+
+    public function test_task_uses_default_estimated_duration(): void
+    {
+        $user = User::factory()->create();
+
+        $course = $user->courses()->create([
+            'name' => 'Pemrograman Web',
+            'code' => 'WEB101',
+            'credits' => 3,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/tasks', [
+            'course_id' => $course->id,
+            'title' => 'Tugas dengan estimasi default',
+            'deadline' => now()->addDays(3)->toDateTimeString(),
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.estimated_duration_minutes', 60);
+
+        $this->assertDatabaseHas('tasks', [
+            'title' => 'Tugas dengan estimasi default',
+            'estimated_duration_minutes' => 60,
+        ]);
+    }
+
+    public function test_user_can_set_and_update_estimated_duration(): void
+    {
+        $user = User::factory()->create();
+
+        $course = $user->courses()->create([
+            'name' => 'Basis Data',
+            'code' => 'DB101',
+            'credits' => 3,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/tasks', [
+            'course_id' => $course->id,
+            'title' => 'Tugas dengan estimasi khusus',
+            'deadline' => now()->addDays(3)->toDateTimeString(),
+            'estimated_duration_minutes' => 90,
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.estimated_duration_minutes', 90);
+
+        $taskId = $response->json('data.id');
+
+        $this->patchJson("/api/tasks/{$taskId}", [
+            'estimated_duration_minutes' => 120,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.estimated_duration_minutes', 120);
+
+        $this->assertDatabaseHas('tasks', [
+            'id' => $taskId,
+            'estimated_duration_minutes' => 120,
+        ]);
+    }
+
+    public function test_task_rejects_estimated_duration_below_minimum(): void
+    {
+        $user = User::factory()->create();
+
+        $course = $user->courses()->create([
+            'name' => 'Pemrograman Web',
+            'code' => 'WEB101',
+            'credits' => 3,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/tasks', [
+            'course_id' => $course->id,
+            'title' => 'Tugas tidak valid',
+            'deadline' => now()->addDays(3)->toDateTimeString(),
+            'estimated_duration_minutes' => 10,
+        ])->assertUnprocessable();
+    }
+
+    public function test_task_rejects_estimated_duration_above_maximum(): void
+    {
+        $user = User::factory()->create();
+
+        $course = $user->courses()->create([
+            'name' => 'Pemrograman Web',
+            'code' => 'WEB101',
+            'credits' => 3,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/tasks', [
+            'course_id' => $course->id,
+            'title' => 'Tugas tidak valid',
+            'deadline' => now()->addDays(3)->toDateTimeString(),
+            'estimated_duration_minutes' => 500,
+        ])->assertUnprocessable();
+    }
 }

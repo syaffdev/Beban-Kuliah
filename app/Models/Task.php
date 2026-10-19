@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Task extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'course_id',
         'title',
@@ -16,12 +17,14 @@ class Task extends Model
         'deadline',
         'priority',
         'status',
+        'estimated_duration_minutes',
     ];
 
     public function casts(): array
     {
         return [
-            'deadline' =>  'datetime',
+            'deadline' => 'datetime',
+            'estimated_duration_minutes' => 'integer',
         ];
     }
 

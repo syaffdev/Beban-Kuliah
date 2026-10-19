@@ -38,10 +38,14 @@ class TaskController extends Controller
                 'sometimes',
                 Rule::in(['pending', 'in_progress', 'completed']),
             ],
+            'estimated_duration_minutes' => [
+                'sometimes',
+                'integer',
+                'min:15',
+                'max:480',
+            ],
         ]);
-
-        $task = $request->user()->tasks()->create($validated);
-
+        $task = $request->user()->tasks()->create($validated)->fresh();
         return response()->json([
             'message' => 'Tugas berhasil dibuat.',
             'data' => $task->load('course:id,name,code'),
@@ -78,6 +82,12 @@ class TaskController extends Controller
             'status' => [
                 'sometimes',
                 Rule::in(['pending', 'in_progress', 'completed']),
+            ],
+            'estimated_duration_minutes' => [
+                'sometimes',
+                'integer',
+                'min:15',
+                'max:480',
             ],
         ]);
         $task->update($validated);
