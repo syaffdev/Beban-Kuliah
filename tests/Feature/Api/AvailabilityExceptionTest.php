@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\AvailabilityException;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -27,19 +28,19 @@ class AvailabilityExceptionTest extends TestCase
                 'reason' => 'Acara keluarga',
             ]
         );
+
         $response->assertCreated()->assertJsonPath('data.type', 'unavailable')->assertJsonPath('data.reason', 'Acara keluarga');
-        $this->assertDatabaseHas('availability_exceptions', [
-            'user_id' => $user->id,
-            'date' => '2026-11-02',
-            'type' => 'unavailable',
-            'start_time' => null,
-            'end_time' => null,
-        ]);
+        $exception = AvailabilityException::where('user_id', $user->id)->where('type', 'unavailable')->first();
+        $this->assertNotNull($exception);
+        $this->assertSame('2026-11-02', $exception->date->toDateString());
+        $this->assertNull($exception->start_time);
+        $this->assertNull($exception->end_time);
     }
 
     public function test_user_can_create_extra_availability(): void
     {
         $user = User::factory()->create();
+
         $response = $this->actingAs($user)->postJson(
             '/api/availability/exceptions',
             [
@@ -50,15 +51,12 @@ class AvailabilityExceptionTest extends TestCase
                 'reason' => 'Belajar tambahan',
             ]
         );
-
-        $response->assertCreated()
-            ->assertJsonPath('data.type', 'extra_available');
-
-        $this->assertDatabaseHas('availability_exceptions', [
-            'user_id' => $user->id,
-            'date' => '2026-11-03',
-            'type' => 'extra_available',
-        ]);
+        $response->assertCreated()->assertJsonPath('data.type', 'extra_available');
+        $exception = AvailabilityException::where('user_id', $user->id)->where('type', 'extra_available')->first();
+        $this->assertNotNull($exception);
+        $this->assertSame('2026-11-03', $exception->date->toDateString());
+        $this->assertSame('09:00', $exception->start_time);
+        $this->assertSame('12:00', $exception->end_time);
     }
 
     public function test_extra_availability_requires_both_times(): void
@@ -98,8 +96,8 @@ class AvailabilityExceptionTest extends TestCase
     {
         $owner = User::factory()->create();
         $otherUser = User::factory()->create();
+
         $owner->availabilityExceptions()->create([
-            'user_id' => $owner->id,
             'date' => '2026-11-02',
             'type' => 'unavailable',
             'reason' => 'Private',
@@ -118,7 +116,6 @@ class AvailabilityExceptionTest extends TestCase
         $otherUser = User::factory()->create();
 
         $exception = $owner->availabilityExceptions()->create([
-            'user_id' => $owner->id,
             'date' => '2026-11-02',
             'type' => 'unavailable',
         ]);
@@ -137,7 +134,6 @@ class AvailabilityExceptionTest extends TestCase
         $otherUser = User::factory()->create();
 
         $exception = $owner->availabilityExceptions()->create([
-            'user_id' => $owner->id,
             'date' => '2026-11-02',
             'type' => 'unavailable',
         ]);

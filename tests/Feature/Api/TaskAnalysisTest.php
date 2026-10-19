@@ -118,4 +118,64 @@ class TaskAnalysisTest extends TestCase
                 'id' => $otherTask->id,
             ]);
     }
+
+    public function test_workload_only_counts_own_data(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $otherUser->courses()->create([
+            'name' => 'Mata Kuliah Pengguna Lain',
+            'code' => 'OTHER101',
+            'credits' => 3,
+        ]);
+
+        Sanctum::actingAs($user);
+        $this->getJson('/api/analysis/workload')
+            ->assertOk()
+            ->assertJsonPath('data.total_courses', 0)
+            ->assertJsonPath('data.pending_tasks', 0)
+            ->assertJsonPath('data.in_progress_tasks', 0)
+            ->assertJsonPath('data.completed_tasks', 0)
+            ->assertJsonPath('data.overdue_tasks', 0);
+    }
+
+    public function test_deadline_risk_uses_exact_deadline_time(): void
+    {
+        $user = User::factory()->create();
+
+        $course = $user->courses()->create([
+            'name' => 'Pemrograman Web',
+            'code' => 'WEB101',
+            'credits' => 3,
+        ]);
+
+        $overdueTask = $user->tasks()->create([
+            'course_id' => $course->id,
+            'title' => 'Deadline sudah lewat',
+            'deadline' => now()->subMinute(),
+            'priority' => 'high',
+            'status' => 'pending',
+        ]);
+
+        $notOverdueTask = $user->tasks()->create([
+            'course_id' => $course->id,
+            'title' => 'Deadline masih berlangsung',
+            'deadline' => now()->addHours(2),
+            'priority' => 'medium',
+            'status' => 'pending',
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/analysis/deadline-risk')
+            ->assertOk()
+            ->assertJsonFragment([
+                'id' => $overdueTask->id,
+                'risk' => 'overdue',
+            ])
+            ->assertJsonFragment([
+                'id' => $notOverdueTask->id,
+                'risk' => 'high',
+            ]);
+    }
 }

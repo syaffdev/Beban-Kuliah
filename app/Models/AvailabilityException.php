@@ -15,7 +15,7 @@ class AvailabilityException extends Model
         'reason'
     ];
 
-    protected function cast(): array
+    protected function casts(): array
     {
         return [
             'date' => 'date',

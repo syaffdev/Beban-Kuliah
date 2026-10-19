@@ -19,23 +19,10 @@ class TaskAnalysisController extends Controller
             'message' => 'Analisis beban kuliah berhasil.',
             'data' => [
                 'total_courses' => Course::where('user_id', $user->id)->count(),
-
-                'pending_tasks' => (clone $tasks)
-                    ->where('status', 'pending')
-                    ->count(),
-
-                'in_progress_tasks' => (clone $tasks)
-                    ->where('status', 'in_progress')
-                    ->count(),
-
-                'completed_tasks' => (clone $tasks)
-                    ->where('status', 'completed')
-                    ->count(),
-
-                'overdue_tasks' => (clone $tasks)
-                    ->where('status', '!=', 'completed')
-                    ->where('deadline', '<', now())
-                    ->count(),
+                'pending_tasks' => (clone $tasks)->where('status', 'pending')->count(),
+                'in_progress_tasks' => (clone $tasks)->where('status', 'in_progress')->count(),
+                'completed_tasks' => (clone $tasks)->where('status', 'completed')->count(),
+                'overdue_tasks' => (clone $tasks)->where('status', '!=', 'completed')->where('deadline', '<', now())->count(),
             ],
         ]);
     }
@@ -43,34 +30,34 @@ class TaskAnalysisController extends Controller
     public function deadlineRisk(Request $request)
     {
         $user = $request->user();
+        $tasks = Task::where('user_id', $user->id)->where('status', '!=', 'completed')->orderBy('deadline')->get();
+        $data =
+$data = $tasks->map(function ($task) {
+    $now = now();
+    $deadline = $task->deadline;
 
-        $tasks = Task::where('user_id', $user->id)
-            ->where('status', '!=', 'completed')
-            ->orderBy('deadline')
-            ->get();
+    $daysLeft = (int) $now
+        ->copy()
+        ->startOfDay()
+        ->diffInDays($deadline->copy()->startOfDay(), false);
 
-        $data = $tasks->map(function ($task) {
-            $daysLeft = (int) now()
-                ->startOfDay()
-                ->diffInDays($task->deadline->copy()->startOfDay(), false);
+    if ($deadline->isPast()) {
+        $risk = 'overdue';
+    } elseif ($daysLeft <= 2) {
+        $risk = 'high';
+    } else {
+        $risk = 'low';
+    }
 
-            if ($daysLeft < 0) {
-                $risk = 'overdue';
-            } elseif ($daysLeft <= 2) {
-                $risk = 'high';
-            } else {
-                $risk = 'low';
-            }
-
-            return [
-                'id' => $task->id,
-                'title' => $task->title,
-                'deadline' => $task->deadline,
-                'status' => $task->status,
-                'days_left' => $daysLeft,
-                'risk' => $risk,
-            ];
-        });
+    return [
+        'id' => $task->id,
+        'title' => $task->title,
+        'deadline' => $deadline,
+        'status' => $task->status,
+        'days_left' => $daysLeft,
+        'risk' => $risk,
+    ];
+});
 
         return response()->json([
             'message' => 'Analisis risiko deadline berhasil.',
